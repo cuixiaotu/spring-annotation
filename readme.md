@@ -202,3 +202,67 @@ public void testScan(){
 
 
 ### 3.2 配置类注解扫描
+
+```java
+@ComponentScan(value = "com.xiaotu")
+@Configuration //告诉Spring这事一个配置类
+public class MainConfig {
+
+    //给容器注册一个Bean 类型返回值的类型 id默认方法名
+    //@Bean("person002")
+    @Bean
+    public Person person(){
+        return new Person("xiaotu2",20);
+    }
+
+}
+```
+
+
+
+### 3.3 关于@ComponetScan注解
+
+```java
+ComponentScan.Filter[] includeFilters() default {};
+
+ComponentScan.Filter[] excludeFilters() default {};
+```
+
+- excludeFilters 扫描时应该排除的类
+- includeFilters 只扫描包含注解标注的类
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        excludeFilters = {
+                @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } ),
+                @Filter( type = FilterType.ASSIGNABLE_TYPE , classes = { BookDao.class }),
+        } )
+```
+
+
+
+配置includeFilters 并没有生效，需要增加useDefaultFilters = false 
+
+```
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Service.class } )},
+        useDefaultFilters = false 
+)
+```
+
+### 3.4 重复注解
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Service.class } )},
+        useDefaultFilters = false
+)
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } )},
+        useDefaultFilters = false
+)
+```

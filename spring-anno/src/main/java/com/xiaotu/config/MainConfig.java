@@ -1,6 +1,8 @@
 package com.xiaotu.config;
 
 import com.xiaotu.bean.Person;
+import com.xiaotu.controller.BookController;
+import com.xiaotu.dao.BookDao;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
@@ -11,8 +13,15 @@ import org.springframework.stereotype.Service;
 
 //配置类
 @ComponentScan(
-        value = "com.xiaotu"
-  )
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Service.class } )},
+        useDefaultFilters = false
+)
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } )},
+        useDefaultFilters = false
+)
 @Configuration //告诉Spring这事一个配置类
 public class MainConfig {
 
