@@ -266,3 +266,10 @@ ComponentScan.Filter[] excludeFilters() default {};
         useDefaultFilters = false
 )
 ```
+
+
+
+### 四、自定义的TypeFilter
+
+
+
