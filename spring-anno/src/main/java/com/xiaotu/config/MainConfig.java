@@ -3,24 +3,45 @@ package com.xiaotu.config;
 import com.xiaotu.bean.Person;
 import com.xiaotu.controller.BookController;
 import com.xiaotu.dao.BookDao;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import com.xiaotu.service.BookService;
+import org.springframework.context.annotation.*;
 import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.core.type.filter.AspectJTypeFilter;
+import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 
 //配置类
-@ComponentScan(
-        value = "com.xiaotu",
-        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Service.class } )},
-        useDefaultFilters = false
-)
-@ComponentScan(
-        value = "com.xiaotu",
-        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } )},
-        useDefaultFilters = false
+//@ComponentScan(
+//        value = "com.xiaotu",
+//        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } )},
+//        useDefaultFilters = false
+//)
+//@ComponentScan(
+//        value = "com.xiaotu",
+//        includeFilters = { @Filter( type = FilterType.ASSIGNABLE_TYPE ,classes = {BookService.class} )  },
+//        useDefaultFilters = false
+//)
+
+//@ComponentScan(
+//        value = "com.xiaotu",
+//        includeFilters = { @Filter( type = FilterType.ASPECTJ,classes = AspectJTypeFilter.class) },
+//        useDefaultFilters = false
+//)
+//@ComponentScan(
+//        value = "com.xiaotu",
+//        includeFilters = { @Filter( type = FilterType.REGEX,classes = RegexPatternTypeFilter.class) },
+//        useDefaultFilters = false
+//)
+
+//@ComponentScan(
+//        value = "com.xiaotu",
+//        includeFilters = { @Filter( type = FilterType.CUSTOM,classes = MyTypeFilter.class) },
+//        useDefaultFilters = false
+//)
+@ComponentScans(
+        //@ComponentScan( value = "com.xiaotu",  includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Service.class } )}, useDefaultFilters = false )
+        @ComponentScan( value = "com.xiaotu", includeFilters = { @Filter( type = FilterType.CUSTOM,classes = MyTypeFilter.class) }, useDefaultFilters = false )
 )
 @Configuration //告诉Spring这事一个配置类
 public class MainConfig {

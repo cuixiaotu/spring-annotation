@@ -269,7 +269,136 @@ ComponentScan.Filter[] excludeFilters() default {};
 
 
 
-### 四、自定义的TypeFilter
+## 四、自定义的TypeFilter
+
+![image-20220801100440980](images/readme/image-20220801100440980.png)
 
 
+
+## 4.1 ANNOTATION
+
+FilterType.ANNOTATION :按照注解进行包含或者排除
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ANNOTATION,classes = { Controller.class } )},
+        useDefaultFilters = false
+)
+```
+
+
+
+## 4.2 ASSIGNABLE_TYPE
+
+FilterType.ASSIGNABLE_TYPE：按照给定的类型进行包含或者排除
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ASSIGNABLE_TYPE ,classes = {BookService.class} )  },
+        useDefaultFilters = false
+)
+```
+
+
+
+## 4.3 ASPECTJ
+
+FilterType.ASPECTJ：按照ASPECTJ表达式进行包含或者排除
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ASPECTJ,classes = AspectJTypeFilter.class) },
+        useDefaultFilters = false
+)
+```
+
+
+
+## 4.4 REGEX
+
+FilterType.REGEX：按照正则表达式进行包含或者排除
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.ASPECTJ,classes = AspectJTypeFilter.class) },
+        useDefaultFilters = false
+)
+```
+
+
+
+## 4.5 CUSTOM
+
+ FilterType.CUSTOM：按照自定义规则进行包含或者排除，必须为org.springframework.core.type.filter.TypeFilter接口的实现类
+
+
+
+```java
+public class MyTypeFilter implements TypeFilter {
+    /**
+     * 参数：
+     * metadataReader:读取到的当前正在扫描的类的信息
+     * metadataReaderFactory:可以获取到其他任何类的信息的（工厂）
+     * */
+    @Override
+    public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+        return false;
+    }
+
+}
+```
+
+
+
+```java
+@ComponentScan(
+        value = "com.xiaotu",
+        includeFilters = { @Filter( type = FilterType.CUSTOM,classes = MyTypeFilter.class) },
+        useDefaultFilters = false
+)
+```
+
+
+
+## 4.6 实现自定义过滤规则
+
+```java
+public class MyTypeFilter implements TypeFilter {
+    /**
+     * 参数：
+     * metadataReader:读取到的当前正在扫描的类的信息
+     * metadataReaderFactory:可以获取到其他任何类的信息的（工厂）
+     * */
+    @Override
+    public boolean match(MetadataReader metadataReader, MetadataReaderFactory metadataReaderFactory) throws IOException {
+        // 获取当前类注解的信息
+        AnnotationMetadata annotationMetadata = metadataReader.getAnnotationMetadata();
+        // 获取当前正在扫描的类的类信息 比如他的类型 实现的接口
+        ClassMetadata classMetadata = metadataReader.getClassMetadata();
+        // 获取当前类的资源信息 类的路径等信息
+        Resource resource = metadataReader.getResource();
+        // 获取正在扫描的类名
+        String className =  classMetadata.getClassName();
+
+        System.out.println("====>"+ className);
+//        System.out.println("====>"+ annotationMetadata);
+//        System.out.println("====>"+ classMetadata);
+//        System.out.println("====>"+ resource);
+        if (className.contains("er")){
+            return true;
+        }
+        return false;
+    }
+}
+```
+
+
+
+## 五、@Scope注解
+
+### 5.1 @注解概述
 
