@@ -48,6 +48,7 @@ public class MainConfig {
 
     //给容器注册一个Bean 类型返回值的类型 id默认方法名
     //@Bean("person002")
+    @Scope("prototype")
     @Bean
     public Person person(){
         return new Person("xiaotu2",20);

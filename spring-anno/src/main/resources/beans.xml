@@ -6,7 +6,7 @@
 
         <!--只要在com.xiaotu包下，或者com.meimeixia的子包下标注了@Repository、@Service、@Controller、@Component注解的类都会被扫描到，并自动注入到Spring容器中-->
         <context:component-scan base-package="com.xiaotu"></context:component-scan>
-        <bean id="person" class="com.xiaotu.bean.Person">
+        <bean id="person" class="com.xiaotu.bean.Person" scope="prototype">
             <property name="name" value="小土"></property>
             <property name="age" value="18"></property>
         </bean>
