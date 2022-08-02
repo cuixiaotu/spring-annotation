@@ -667,3 +667,62 @@ public void test04(){
 
 测试失败：啊哈哈哈 多线程获取不到bean! 不知道怎么实现的。todo：修复多进程获取bean的问题！！
 
+
+
+## 六、懒加载
+
+懒加载就是Spring容器启动的时候，先不创建对象，在第一次使用（获取）bean的时候再来创建对象，并进行一些初始化。
+
+已知作用域为 singleton的时候会提前加载，prototype的时候本身就是获取时加载。所以懒加载只正对单例作用域模式。
+
+```java
+@Configuration
+public class MainConfig2 {
+
+    @Lazy
+    @Bean
+    public Person person(){
+        System.out.println("给容器中添加person对象");
+        return new Person("theodore",18);
+    }
+}
+```
+
+
+
+新增测试方法
+
+```java
+@Test
+public void test05(){
+    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+
+    //IOC默认的bean管理都是单例的，获取多次为同一个单例对象
+    Person person = (Person) applicationContext.getBean("person");
+    Person person2 = (Person) applicationContext.getBean("person");
+    System.out.println(person == person2);
+}
+```
+
+懒加载，也称延时加载，仅针对单实例bean生效。 单实例bean是在Spring容器启动的时候加载的，添加@Lazy注解后就会延迟加载，在Spring容器启动的时候并不会加载，而是在第一次使用此bean的时候才会加载，但当你多次获取bean的时候并不会重复加载，只是在第一次获取的时候才会加载，这不是延迟加载的特性，而是单实例bean的特性。
+
+
+
+## 七、@Import注解
+
+（@Controller、@Servcie、@Repository、@Component）注解可以给自己写的类定义为bean组件，但是对于三方引入包的类，无法使用上述注解。
+
+### 7.1 注册bean的方式
+
+1. 包扫描+给组件标注注解（@Controller、@Servcie、@Repository、@Component）
+2. @Bean注解，通常用于导入第三方包中的组件
+3. @Import注解，快速向spring容器中导入一个组件
+
+### 7.2 @Import注解概述
+
+Spring 3.0之前，创建bean可以通过XML配置文件与扫描特定包下面的类来将类注入到Spring IOC容器内。而在Spring 3.0之后提供了JavaConfig的方式，也就是将IOC容器里面bean的元信息以Java代码的方式进行描述，然后我们可以通过@Configuration与@Bean这两个注解配合使用来将原来配置在XML文件里面的bean通过Java代码的方式进行描述。
+
+@Import注解提供了@Bean注解的功能，同时还有XML配置文件里面标签组织多个分散的XML文件的功能，当然在这里是组织多个分散的@Configuration，因为一个配置类就约等于一个XML配置文件。
+
+我们先看一下@Import注解的源码，如下所示。
+

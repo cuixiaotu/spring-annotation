@@ -14,26 +14,38 @@ import java.util.concurrent.TimeUnit;
 
 public class IOCTest {
 
-@Test
-public void test04(){
-    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig3.class);
-    //向容器中注册自定义的scope
-    applicationContext.getBeanFactory().registerScope(ThreadScope.THREAD_SCOPE,new ThreadScope());
+    @Test
+    public void test05(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
 
-    //使用容器获取bean
-    for (int i = 0; i < 2; i++) {
-        new Thread(()->{
-            System.out.println(Thread.currentThread() + "," + applicationContext.getBean("person"));
-            System.out.println(Thread.currentThread() + "," + applicationContext.getBean("person"));
-        }).start();
+        //IOC默认的bean管理都是单例的，获取多次为同一个单例对象
+        Person person = (Person) applicationContext.getBean("person");
+        Person person2 = (Person) applicationContext.getBean("person");
+        System.out.println(person == person2);
     }
 
-    try {
-        TimeUnit.SECONDS.sleep(1);
-    }catch (Exception e){
-        e.printStackTrace();
+
+
+    @Test
+    public void test04(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig3.class);
+        //向容器中注册自定义的scope
+        applicationContext.getBeanFactory().registerScope(ThreadScope.THREAD_SCOPE,new ThreadScope());
+
+        //使用容器获取bean
+        for (int i = 0; i < 2; i++) {
+            new Thread(()->{
+                System.out.println(Thread.currentThread() + "," + applicationContext.getBean("person"));
+                System.out.println(Thread.currentThread() + "," + applicationContext.getBean("person"));
+            }).start();
+        }
+
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
-}
 
     @Test
     public void test03(){
