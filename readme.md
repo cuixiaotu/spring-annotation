@@ -717,6 +717,9 @@ public void test05(){
 1. 包扫描+给组件标注注解（@Controller、@Servcie、@Repository、@Component）
 2. @Bean注解，通常用于导入第三方包中的组件
 3. @Import注解，快速向spring容器中导入一个组件
+4. 使用Spring提供的FactoryBean（工厂Bean）
+   - 默认获取到的是工厂bean本身调用的getObject创建对象
+   - 要获取工厂bean本身对象，我们要在id加个&
 
 ### 7.2 @Import注解概述
 
@@ -726,3 +729,115 @@ Spring 3.0之前，创建bean可以通过XML配置文件与扫描特定包下面
 
 我们先看一下@Import注解的源码，如下所示。
 
+![image-20220802164612362](images/readme/image-20220802164612362.png)
+
+**注意：@Import注解只允许放到类上面，不允许放到方法上。**
+
+### 7.3 @Import注解的使用方法
+
+1. 直接写class数组的方式
+2. **ImportSelector接口的方式，批量导入**
+3. ImportBeanDefinitionRegistrar接口方式，既手工注册bean到容器中
+
+
+
+### 7.4 导入示例1  @Import
+
+- 在bean下新建Color和Red类，在MainConfig2类上增加注解
+
+```java
+@Import(Color.class)
+
+@Import({Color.class, Red.class})
+```
+
+
+
+### 7.5 导入示例2  ImportSelector
+
+![image-20220802170244789](images/readme/image-20220802170244789.png)
+
+其主要作用是收集需要导入的配置类，selectImports()方法的返回值就是我们向Spring容器中导入的类的全类名。如果该接口的实现类同时实现EnvironmentAware，BeanFactoryAware，BeanClassLoaderAware或者ResourceLoaderAware，那么在调用其selectImports()方法之前先调用上述接口中对应的方法，如果需要在所有的@Configuration处理完再导入时，那么可以实现DeferredImportSelector接口。
+
+在ImportSelector接口的selectImports()方法中，存在一个AnnotationMetadata类型的参数，这个参数能够获取到当前标注@Import注解的类的所有注解信息，也就是说不仅能获取到@Import注解里面的信息，还能获取到其他注解的信息。
+
+```java
+public class MyImportSelector implements ImportSelector {
+
+    /**
+     * 返回值：就是导入到容器中的组件的全类名
+     * AnnotationMetadata:当前标注@Import注解的类的所有注解信息，
+     * */
+    @Override
+    public String[] selectImports(AnnotationMetadata importingClassMetadata) {
+        //不能返回null 否则会引起空指针报错
+        return new String[]{};
+    }
+}
+```
+
+在bean下新建Bule类和Yellow类,修改MyImportSelector返回
+
+```java
+   @Override
+    public String[] selectImports(AnnotationMetadata importingClassMetadata) {
+        //不能返回null 否则会引起空指针报错
+        return new String[]{"com.xiaotu.bean.Blue","com.xiaotu.bean.Yellow"};
+    }
+```
+
+
+
+![image-20220802175640041](images/readme/image-20220802175640041.png)
+
+
+
+### 7.5  导入示例3 ImportBeanDefinitionRegistrar
+
+ImportBeanDefinitionRegistrar本质上是一个接口。在ImportBeanDefinitionRegistrar接口中，有一个registerBeanDefinitions()方法，通过该方法，我们可以向Spring容器中注册bean实例。
+
+Spring官方在动态注册bean时，大部分套路其实是使用ImportBeanDefinitionRegistrar接口
+
+所有实现了该接口的类都会被ConfigurationClassPostProcessor处理，ConfigurationClassPostProcessor实现了BeanFactoryPostProcessor接口，所以ImportBeanDefinitionRegistrar中动态注册的bean是优先于依赖其的bean初始化的，也能被aop、validator等机制处理。
+
+使用方法
+ImportBeanDefinitionRegistrar需要配合@Configuration和@Import这俩注解，其中，@Configuration注解定义Java格式的Spring配置文件，@Import注解导入实现了ImportBeanDefinitionRegistrar接口的类。
+
+
+
+创建一个MyImportBeanDefinitionRegistrar类，去实现ImportBeanDefinitionRegistrar接口
+
+```java
+public class MyImportBeanDefinitionRegistrar implements ImportBeanDefinitionRegistrar {
+
+    /**
+     * AnnotationMetadata : 当前类的注解信息
+     * BeanDefinitionRegistry : BeanDefinition注册类
+     *
+     * 我们可以通过调用BeanDefinitionRegistry接口中的registerBeanDefinition方法，
+     * 手动注册所有需要添加到容器中的bean
+     * */
+    @Override
+    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+        boolean definition1 = registry.containsBeanDefinition("com.xiaotu.bean.Blue");
+        boolean definition2 = registry.containsBeanDefinition("com.xiaotu.bean.Red");
+        if (definition1 && definition2){
+            // 指定bean的定义信息,包括bean的类型、作用域等
+            // RootBeanDefinition是BeanDefinition的一个实现类
+            RootBeanDefinition beanDefinition = new RootBeanDefinition(RainBow.class);
+            // 注册一个bean,并指定bean的名称
+            registry.registerBeanDefinition("rainBow",beanDefinition);
+        }
+    }
+}
+```
+
+
+
+![image-20220802185735662](images/readme/image-20220802185735662.png)
+
+
+
+
+
+## 八、

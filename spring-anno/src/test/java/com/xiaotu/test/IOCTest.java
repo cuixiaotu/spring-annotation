@@ -8,11 +8,35 @@ import com.xiaotu.scope.ThreadScope;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.concurrent.TimeUnit;
 
 public class IOCTest {
+
+    @Test
+    public void testImport3(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+        Object bean = applicationContext.getBean("&colorFactoryBean");
+        System.out.println("bean的类型：" +  bean.getClass());
+    }
+
+    @Test
+    public void testImport2(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+        Object bean = applicationContext.getBean("colorFactoryBean");
+        System.out.println("bean的类型：" +  bean.getClass());
+    }
+
+    @Test
+    public void testImport(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+        String[] definitionNames = applicationContext.getBeanDefinitionNames();
+        for (String name : definitionNames) {
+            System.out.println(name);
+        }
+    }
 
     @Test
     public void test05(){
