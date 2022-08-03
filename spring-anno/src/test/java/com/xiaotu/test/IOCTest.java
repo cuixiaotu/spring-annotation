@@ -102,7 +102,7 @@ public class IOCTest {
 
         String[] name4Type = applicationContext.getBeanNamesForType(Person.class);
         for ( String name:name4Type){
-            System.out.println(name);
+            System.out.println("name4Type:"+name);
         }
 
     }

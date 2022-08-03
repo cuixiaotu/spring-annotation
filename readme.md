@@ -2,9 +2,9 @@
 
 ## 一、简介
 
+![image-20220803094604623](images/readme/image-20220803094604623.png)
 
 
-![在这里插入图片描述](images/readme/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3llcmVueXVhbl9wa3U=,size_16,color_FFFFFF,t_70.png)
 
 整个专栏分成了三个大的部分，分别是：容器、扩展原理以及Web。
 
@@ -49,7 +49,7 @@ Web作为整个专栏的第三大部分，内容包括：
 
 在Spring容器的底层，最重要的功能就是IOC和DI，也就是控制反转和依赖注入。
 
-![在这里插入图片描述](images/readme/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3llcmVueXVhbl9wa3U=,size_16,color_FFFFFF,t_70-16584781389413.png)
+![image-20220803094722036](images/readme/image-20220803094722036.png)
 
 DI和IOC它俩之间的关系是DI不能单独存在，DI需要在IOC的基础上来完成。
 
@@ -443,7 +443,6 @@ public class MainConfig2 {
 IOCTest增加新的测试方法
 
 ```java
-@SuppressWarnings("resource")
 @Test
 public void test02(){
     AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
@@ -568,10 +567,12 @@ public class ThreadScope implements Scope {
 
         @Override
         protected Object initialValue() {
-            return super.initialValue();
+            return new HashMap<>();
         }
     };
 
+    
+    
     /**
     * 返回当前作用域中的name对应的bean对象
     * @param name:需要检索的bean对象的名称
@@ -840,4 +841,89 @@ public class MyImportBeanDefinitionRegistrar implements ImportBeanDefinitionRegi
 
 
 
-## 八、
+## 八、FactoryBean
+
+### 8.1 FactoryBean概述
+
+一般情况下，Spring是通过反射机制利用bean的class属性指定实现类来实例化bean的。在某些情况下，实例化bean过程比较复杂，如果按照传统的方式，那么则需要在标签中提供大量的配置信息，配置方式的灵活性是受限的，这时采用编码的方式可以得到一个更加简单的方案。Spring为此提供了一个org.springframework.bean.factory.FactoryBean的工厂类接口，用户可以通过实现该接口定制实例化bean的逻辑。
+
+FactoryBean接口对于Spring框架来说占有非常重要的地位，Spring自身就提供了70多个FactoryBean接口的实现。它们隐藏了实例化一些复杂bean的细节，给上层应用带来了便利。从Spring 3.0开始，FactoryBean开始支持泛型，即接口声明改为FactoryBean<T>的形式。
+
+
+
+![image-20220803103808779](images/readme/image-20220803103808779.png)
+
+- getObject: 返回由FactoryBean创建的bean实例，如果isSingleton()返回true,那么该实例会放到Spring容器中单实例缓存池中。
+- boolean isSingleton():返回FactoryBean创建的bean实例的作用域是singleton还是prototype
+- Class<?> getObjectType():返回FactoryBean创建的bean实例的类型
+
+当配置文件中标签的class属性配置的实现类是FactoryBean时，通过 getBean()方法返回的不是FactoryBean本身，而是FactoryBean#getObject()方法所返回的对象，相当于FactoryBean#getObject()代理了getBean()方法。
+
+
+
+### 8.2 FactoryBean案例
+
+```java
+public class ColorFactoryBean implements FactoryBean {
+
+    @Override
+    public boolean isSingleton() {
+        return false;
+    }
+
+    //返回color对象，这个对象添加到容器中
+    @Override
+    public Object getObject() throws Exception {
+        return new Color();
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return Color.class;
+    }
+}
+```
+
+MainConfig2配置类中加入ColorFactoryBean
+
+```java
+ @Bean
+ public ColorFactoryBean colorFactoryBean(){
+ 	return new ColorFactoryBean();
+ }
+```
+
+测试方法
+
+```java
+@Test
+public void testImport3(){
+    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+    Object bean = applicationContext.getBean("&colorFactoryBean");
+    System.out.println("bean的类型：" +  bean.getClass());
+}
+
+@Test
+public void testImport2(){
+    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+    Object bean = applicationContext.getBean("colorFactoryBean");
+    System.out.println("bean的类型：" +  bean.getClass());
+}
+
+@Test
+public void testImport(){
+    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfig2.class);
+    String[] definitionNames = applicationContext.getBeanDefinitionNames();
+    for (String name : definitionNames) {
+        System.out.println(name);
+    }
+}
+```
+
+
+
+**获取工厂Bean本身时，在id前面加上&符号即可，例如&colorFactoryBean。**
+
+
+
+#
