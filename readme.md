@@ -926,4 +926,180 @@ public void testImport(){
 
 
 
-#
+## 九、@Bean注解指定初始化和销毁
+
+### 9.1 XML配置
+
+```xml
+<bean id="person" class="com.xiaotu.bean.Car" scope="prototype" init-method="init" destroy-method="destroy">
+</bean>
+```
+
+
+
+### 9.2 类配置
+
+新建bean下car类
+
+```java
+public class Car {
+    public Car() {
+        System.out.println("car ... constructor ...");
+    }
+
+    public void init(){
+        System.out.println("car ... init ...");
+    }
+
+    public void destroy(){
+        System.out.println("car ... destroy ...");
+    }
+}
+```
+
+新建配置类MainConfigOfLifeCycle
+
+```java
+@Configuration
+public class MainConfigOfLifeCycle {
+
+    @Bean
+    public Car car(){
+        return new Car();
+    }
+
+}
+```
+
+新建测试类 IOCTest_LifeCycle
+
+```java
+public class IOCTest_LifeCycle {
+
+    @Test
+    public void test01(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfigOfLifeCycle.class);
+        System.out.println("容器创建完成");
+    }
+
+}
+```
+
+测试结果
+
+![image-20220804095939024](images/readme/image-20220804095939024.png)
+
+总结
+
+对于单实例的bean,Spring容器启动时创建对象，多实例的bean，会在每次获取bean的时候创建对象。
+
+### 9.3 源码分析
+
+打开bean注解，initMethod属性和destroyMethod属性来指定bean的初始化方法和销毁方法。
+
+![image-20220804100418241](images/readme/image-20220804100418241.png)
+
+
+
+配置类增加
+
+```java
+@Bean(initMethod = "init",destroyMethod = "destroy")
+public Car car(){
+    return new Car();
+}
+```
+
+再次运行测试方法，返回结果
+
+![image-20220804100843015](images/readme/image-20220804100843015.png)
+
+容器销毁时，会调用销毁方法
+
+```java
+    @Test
+    public void test01(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(MainConfigOfLifeCycle.class);
+        System.out.println("容器创建完成");
+
+        applicationContext.close();
+    }
+```
+
+
+
+![image-20220804133642093](images/readme/image-20220804133642093.png)
+
+### 9.4 初始化和销毁方法调用的时机
+你有没有想过这样一个问题，初始化方法和销毁方法是在什么时候被调用的啊？
+
+- bean对象的初始化方法调用的时机：对象创建完成，如果对象中存在一些属性，并且这些属性也都赋好值之后，那么就会调用bean的初始化方法。对于单实例bean来说，在Spring容器创建完成后，Spring容器会自动调用bean的初始化方法；对于多实例bean来说，在每次获取bean对象的时候，调用bean的初始化方法。
+- bean对象的销毁方法调用的时机：对于单实例bean来说，在容器关闭的时候，会调用bean的销毁方法；对于多实例bean来说，Spring容器不会管理这个bean，也就不会自动调用这个bean的销毁方法了。不过，小伙伴们可以手动调用多实例bean的销毁方法。
+
+
+
+## 十、InitializingBean和DisposableBean
+
+### 10.1 InitializingBean接口概述
+
+org.springframework.beans.factory;下InitializingBean
+
+![image-20220804135238705](images/readme/image-20220804135238705.png)
+
+org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory这个类里面的invokeInitMethods()方法中
+
+![image-20220804135829319](images/readme/image-20220804135829319.png)
+
+1. Spring为bean提供了两种初始化的方式，实现InitializingBean接口（也就是要实现该接口中的afterPropertiesSet方法），或者在配置文件或@Bean注解中通过init-method来指定，两种方式可以同时使用。
+
+2. 实现InitializingBean接口是直接调用afterPropertiesSet()方法，与通过反射调用init-method指定的方法相比，效率相对来说要高点。但是init-method方式消除了对Spring的依赖。
+   如果调用afterPropertiesSet方法时出错，那么就不会调用init-method指定的方法了。
+   也就是说Spring为bean提供了两种初始化的方式，第一种方式是实现InitializingBean接口（也就是要实现该接口中的afterPropertiesSet方法），第二种方式是在配置文件或@Bean注解中通过init-method来指定，这两种方式可以同时使用，同时使
+3. 先调用afterPropertiesSet方法，后执行init-method指定的方法。
+
+也就是说Spring为bean提供了两种初始化的方式，第一种方式是实现InitializingBean接口（也就是要实现该接口中的afterPropertiesSet方法），第二种方式是在配置文件或@Bean注解中通过init-method来指定，这两种方式可以同时使用，同时使用先调用afterPropertiesSet方法，后执行init-method指定的方法。
+
+
+
+### 10.2 DisposableBean接口
+
+![image-20220804144219256](images/readme/image-20220804144219256.png)
+
+实现org.springframework.beans.factory.DisposableBean接口的bean在销毁前，Spring将会调用DisposableBean接口的destroy()方法。也就是说我们可以实现DisposableBean这个接口来定义咱们这个销毁的逻辑。
+
+DisposableBean接口注意事项
+多实例bean的生命周期不归Spring容器来管理，这里的DisposableBean接口中的方法是由Spring容器来调用的，所以如果一个多实例bean实现了DisposableBean接口是没有啥意义的，因为相应的方法根本不会被调用，当然了，在XML配置文件中指定了destroy方法，也是没有任何意义的。所以，在多实例bean情况下，Spring是不会自动调用bean的销毁方法的。
+
+
+
+### 10.3 单实例案例
+
+创建新的cat类实现InitializingBean和DisposableBean俩接口。
+
+```java
+@Component
+public class Cat implements InitializingBean, DisposableBean {
+
+    public Cat() {
+        System.out.println("Cat...constructor...");
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        System.out.println("Cat...destroy...");
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println("Cat...afterPropertiesSet...");
+    }
+}
+```
+
+MainConfigOfLifeCycle增加扫描组件
+
+```java
+@ComponentScan("com.xiaotu.bean")
+```
+
+![image-20220804145727363](images/readme/image-20220804145727363.png)

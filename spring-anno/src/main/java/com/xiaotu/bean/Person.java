@@ -36,4 +36,12 @@ public class Person {
 //                ", age=" + age +
 //                '}';
 //    }
+
+    public void init(){
+        System.out.println("person init ");
+    }
+
+    public void destroy(){
+        System.out.println("person destroy ");
+    }
 }
