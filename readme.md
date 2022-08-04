@@ -1103,3 +1103,275 @@ MainConfigOfLifeCycle增加扫描组件
 ```
 
 ![image-20220804145727363](images/readme/image-20220804145727363.png)
+
+## 十一、@PostConstruct注解和@PreDestroy
+
+### @PreDestroy注解
+
+![image-20220804151837152](images/readme/image-20220804151837152.png)
+
+PostConstruct注解是Java中的注解，并不是Spring提供的注解。
+
+@PostConstruct注解被用来修饰一个非静态的void()方法。被@PostConstruct注解修饰的方法会在服务器加载Servlet的时候运行，并且只会被服务器执行一次。被@PostConstruct注解修饰的方法通常在构造函数之后，init()方法之前执行。
+
+通常我们是会在Spring框架中使用到@PostConstruct注解的，该注解的方法在整个bean初始化中的执行顺序如下：
+
+> Constructor（构造方法）→@Autowired（依赖注入）→@PostConstruct（注释的方法）
+
+### @PreDestroy注解
+
+![image-20220804151952722](images/readme/image-20220804151952722.png)
+
+被@PreDestroy注解修饰的方法会在服务器卸载Servlet的时候运行，并且只会被服务器调用一次，类似于Servlet的destroy()方法。被@PreDestroy注解修饰的方法会在destroy()方法之后，Servlet被彻底卸载之前执行。执行顺序如下所示：
+
+> 调用destroy()方法→@PreDestroy→destroy()方法→bean销毁
+
+
+
+@PostConstruct和@PreDestroy是Java规范JSR-250引入的注解，定义了对象的创建和销毁工作，同一期规范中还有@Resource注解，Spring也支持了这些注解。
+
+### 案例
+
+```java
+@Component
+public class Dog {
+
+    public Dog() {
+        System.out.println("dog...constructor");
+    }
+
+    @PostConstruct
+    public void init(){
+        System.out.println("dog...PostConstruct");
+    }
+
+    @PreDestroy
+    public void destroy(){
+        System.out.println("dog...PreDestroy");
+    }
+
+}
+```
+
+
+
+## 十二、BeanPostProcessor
+
+![image-20220804152635565](images/readme/image-20220804152635565.png)
+
+
+
+示例：
+
+```java
+package com.xiaotu.bean;
+
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.stereotype.Component;
+
+@Component
+public class MyBeanPostProcessor implements BeanPostProcessor {
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        System.out.println("postProcessBeforeInitialization ===>"+beanName+"===>"+bean);
+        return bean;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        System.out.println("postProcessAfterInitialization ===>"+beanName+"===>"+bean);
+        return bean;
+    }
+}
+
+```
+
+
+
+![image-20220804153135965](images/readme/image-20220804153135965.png)
+
+
+
+BeanPostProcessor后置处理器作用
+后置处理器可用于bean对象初始化前后进行逻辑增强。Spring提供了BeanPostProcessor接口的很多实现类，例如AutowiredAnnotationBeanPostProcessor用于@Autowired注解的实现，AnnotationAwareAspectJAutoProxyCreator用于Spring AOP的动态代理等等。
+
+除此之外，我们还可以自定义BeanPostProcessor接口的实现类，在其中写入咱们需要的逻辑。下面我会以AnnotationAwareAspectJAutoProxyCreator为例，简单说明一下后置处理器是怎样工作的。
+
+我们都知道spring AOP的实现原理是动态代理，最终放入容器的是代理类的对象，而不是bean本身的对象，那么Spring是什么时候做到这一步的呢？就是在AnnotationAwareAspectJAutoProxyCreator后置处理器的postProcessAfterInitialization方法中，即bean对象初始化完成之后，后置处理器会判断该bean是否注册了切面，若是，则生成代理对象注入到容器中。这一部分的关键代码是在哪儿呢？我们定位到AbstractAutoProxyCreator抽象类中的postProcessAfterInitialization方法处便能看到了，如下所示。
+
+
+
+
+
+
+
+### BeanPostProcessor的执行流程
+
+bean的初始化和销毁
+我们知道BeanPostProcessor的postProcessBeforeInitialization()方法是在bean的初始化之前被调用；而postProcessAfterInitialization()方法是在bean初始化的之后被调用。并且bean的初始化和销毁方法我们可以通过如下方式进行指定。
+
+1. 通过@Bean指定init-method和destroy-method
+2. 通过让bean实现InitializingBean和DisposableBean这俩接口
+3. 使用JSR-250规范里面定义的@PostConstruct和@PreDestroy这俩注解
+4. 通过让bean实现BeanPostProcessor接口
+
+
+
+bean的实例化：调用bean的构造方法，我们可以在bean的无参构造方法中执行相应的逻辑。
+bean的初始化：在初始化时，可以通过BeanPostProcessor的postProcessBeforeInitialization()方法和postProcessAfterInitialization()方法进行拦截，执行自定义的逻辑；通过@PostConstruct注解、InitializingBean和init-method来指定bean初始化前后执行的方法，在该方法中咱们可以执行自定义的逻辑。
+bean的销毁：可以通过@PreDestroy注解、DisposableBean和destroy-method来指定bean在销毁前执行的方法，在该方法中咱们可以执行自定义的逻辑。
+
+
+
+### BeanPostProcessor源码解析
+
+![image-20220804190343980](images/readme/image-20220804190343980.png)
+
+
+
+
+
+### ApplicationContextAwareProcessor类
+
+![image-20220804190456287](images/readme/image-20220804190456287.png)
+
+
+
+
+
+![image-20220804190545109](images/readme/image-20220804190545109.png)
+
+一个Dog类，使其实现ApplicationContextAware接口，此时，我们需要实现ApplicationContextAware接口中的setApplicationContext()方法，在setApplicationContext()方法中有一个ApplicationContext类型的参数，这个就是IOC容器对象，我们可以在Dog类中定义一个ApplicationContext类型的成员变量，然后在setApplicationContext()方法中为这个成员变量赋值，此时就可以在Dog类中的其他方法中使用ApplicationContext对象了，如下所示
+
+```java
+@Component
+public class Dog implements ApplicationContextAware {
+    private ApplicationContext applicationContext;
+
+    public Dog() {
+        System.out.println("dog...constructor");
+    }
+
+    @PostConstruct
+    public void init(){
+        System.out.println("dog...PostConstruct");
+    }
+
+    @PreDestroy
+    public void destroy(){
+        System.out.println("dog...PreDestroy");
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+}
+```
+
+BeanPostProcessor在Spring底层的一种使用场景。至于上面的案例代码为何会在setApplicationContext()方法中获取到ApplicationContext对象，这就是ApplicationContextAwareProcessor类的功劳了！
+
+
+
+### BeanValidationPostProcessor类
+
+org.springframework.validation.beanvalidation.BeanValidationPostProcessor类主要是用来为bean进行校验操作的，当我们创建bean，并为bean赋值后，我们可以通过BeanValidationPostProcessor类为bean进行校验操作。BeanValidationPostProcessor类的源码如下所示。
+
+
+
+![image-20220804191321546](images/readme/image-20220804191321546.png)
+
+
+
+可以看到，在postProcessBeforeInitialization()方法和postProcessAfterInitialization()方法中的主要逻辑都是调用doValidate()方法对bean进行校验，只不过在这两个方法中都会对afterInitialization这个boolean类型的成员变量进行判断，若afterInitialization的值为false，则在postProcessBeforeInitialization()方法中调用doValidate()方法对bean进行校验；若afterInitialization的值为true，则在postProcessAfterInitialization()方法中调用doValidate()方法对bean进行校验。
+
+### InitDestroyAnnotationBeanPostProcessor类
+
+org.springframework.beans.factory.annotation.InitDestroyAnnotationBeanPostProcessor类主要用来处理@PostConstruct注解和@PreDestroy注解。
+
+Spring怎么就能定位到使用@PostConstruct注解标注的方法呢？通过分析方法的调用栈，我们发现在进入使用@PostConstruct注解标注的方法之前，Spring调用了InitDestroyAnnotationBeanPostProcessor类的postProcessBeforeInitialization()方法，如下所示
+
+![image-20220804191456675](images/readme/image-20220804191456675.png)
+
+
+
+AutowiredAnnotationBeanPostProcessor类
+org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor类主要是用于处理标注了@Autowired注解的变量或方法。
+
+Spring为何能够自动处理标注了@Autowired注解的变量或方法，就交给小伙伴们自行分析了。大家可以写一个测试方法并通过方法调用堆栈来分析AutowiredAnnotationBeanPostProcessor类的源码，从而找到自己想要的答案。
+
+
+
+
+
+## 十三、@Value
+
+
+
+
+
+
+
+### @Value注解的用法
+
+不通过配置文件注入属性的情况
+
+- 注入普通字符串
+
+  ```java
+  @Value("小土")
+  private String name;
+  ```
+
+- 注入操作系统属性
+
+  ```java
+  @Value("#{systemProperties['os.name']}")
+  private String systemPropertiesName;
+  ```
+
+- 注入SpEL表达式结果
+
+  ```java
+  @Value("#{ T(java.lang.Math).random()*100.0 }")
+  private double randomNumber;//
+  ```
+
+- 注入其他bean中属性的值
+
+  ```java
+  @Value("#{ person.name }")
+  private String username;
+  ```
+
+- 注入文件资源
+
+  ```java
+  @Value("class:/config.properties")
+  private Resource resourceFile;
+  ```
+
+- 注入URL资源
+
+  ```java
+  @Value("http://www.baidu.com")
+  private Resource url;
+  ```
+
+
+
+
+
+# @Autowired、@Qualifier、@Primary
+
+@Autowired注解可以对[类成员](https://so.csdn.net/so/search?q=类成员&spm=1001.2101.3001.7020)变量、方法和构造函数进行标注，完成自动装配的工作。@Autowired注解可以放在类、接口以及方法上。
+
+
+
+@Autowired是根据类型进行自动装配的，如果需要按名称进行装配，那么就需要配合@Qualifier注解来使用了。
+
+
+
+@Primary注解
+在Spring中使用注解时，常常会使用到@Autowired这个注解，它默认是根据类型Type来自动注入的。但有些特殊情况，对同一个接口而言，可能会有几种不同的实现类，而在默认只会采取其中一种实现的情况下，就可以使用@Primary注解来标注优先使用哪一个实现类。
