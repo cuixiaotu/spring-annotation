@@ -1363,15 +1363,106 @@ Spring为何能够自动处理标注了@Autowired注解的变量或方法，就�
 
 
 
-# @Autowired、@Qualifier、@Primary
+# 十四、自动装配
 
-@Autowired注解可以对[类成员](https://so.csdn.net/so/search?q=类成员&spm=1001.2101.3001.7020)变量、方法和构造函数进行标注，完成自动装配的工作。@Autowired注解可以放在类、接口以及方法上。
+1. 默认优先按照类型去容器中找对应的组件：`applicationContext.getBean(BookDao.class);`
+
+2. 如果找到多个相同类型的组件，再将属性的名称作为组件的ID去容器中查找：`applicationContext.getBean("bookDao1");`
+
+3.  @Qualifier("bookDao") 指定需要装配的组件ID，而不是使用属性名
+
+   ```java
+   BookService{
+       @Qualifier("bookDao")
+       @Autowired(required=false)
+       private BookDao bookDao1;
+   }
+   ```
+
+4. 自动装配一定要将属性赋值好，如果容器中没有指定的类，就会报错。可以指定@Autowired(required=false)避免报错。
+
+5. @Primary：让Spring进行自动装配的时候，默认使用首选的Bean。也可以使用@Qualifier来指定需要装配的Bean的名字。
 
 
 
-@Autowired是根据类型进行自动装配的，如果需要按名称进行装配，那么就需要配合@Qualifier注解来使用了。
+
+
+配置新的配置类
+
+```java
+@Configuration
+@PropertySource("classpath:/jdbc_config.properties")
+public class MainConfigOfProfile implements EmbeddedValueResolverAware {
+
+    @Value("${db.user}")
+    private String user;
+
+    private String driverClass;
+
+
+    @Profile("test")
+    @Bean
+    public Yellow yellow(){
+        return new Yellow();
+    }
+
+    @Profile("test")
+    @Bean("testDataSource")
+    public DataSource dataSourceTest(@Value("${db.password}") String password) throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser(user);
+        dataSource.setPassword(password);
+        dataSource.setDriverClass(driverClass);
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/test");
+        return dataSource;
+    }
+
+    @Profile("dev")
+    @Bean("devDataSource")
+    public DataSource dataSourceDev(@Value("${db.password}") String password) throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser(user);
+        dataSource.setPassword(password);
+        dataSource.setDriverClass(driverClass);
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/test");
+        return dataSource;
+    }
+
+    @Profile("prod")
+    @Bean("prodDataSource")
+    public DataSource dataSourceProd(@Value("${db.password}") String password) throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser(user);
+        dataSource.setPassword(password);
+        dataSource.setDriverClass(driverClass);
+        dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/test");
+        return dataSource;
+    }
+
+    @Override
+    public void setEmbeddedValueResolver(StringValueResolver resolver) {
+        driverClass = resolver.resolveStringValue("${db.driverClass}");
+
+    }
+}
+```
 
 
 
-@Primary注解
-在Spring中使用注解时，常常会使用到@Autowired这个注解，它默认是根据类型Type来自动注入的。但有些特殊情况，对同一个接口而言，可能会有几种不同的实现类，而在默认只会采取其中一种实现的情况下，就可以使用@Primary注解来标注优先使用哪一个实现类。
+测试方法
+
+```JAVA
+    @Test
+    public void test01(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext();
+        applicationContext.getEnvironment().setActiveProfiles("dev","test");
+        applicationContext.register(MainConfigOfProfile.class);
+        applicationContext.refresh();
+
+        String[] names = applicationContext.getBeanDefinitionNames();
+        for (String name : names){
+            System.out.println(name);
+        }
+    }
+```
+
