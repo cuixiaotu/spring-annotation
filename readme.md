@@ -1821,3 +1821,176 @@ registry. getInterceptors(advisor);
 
 
 
+## 十六、声明式事务
+
+1、导入相关依赖
+
+```xml
+<dependency>
+    <groupId>c3p0</groupId>
+    <artifactId>c3p0</artifactId>
+    <version>0.9.1.2</version>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.49</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-jdbc</artifactId>
+    <version>4.3.12.RELEASE</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-orm</artifactId>
+    <version>4.3.12.RELEASE</version>
+</dependency>
+```
+
+
+
+创建新的Service、Dao
+
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private UserDao userDao;
+
+    public void insert(){
+        userDao.insert();
+    }
+
+}
+```
+
+```java
+@Repository
+public class UserDao {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    public void insert(){
+        String sql = "insert into `t_user`(username,age) value(?,?)";
+        String name = UUID.randomUUID().toString().substring(0,5);
+        jdbcTemplate.update(sql,name,19);
+    }
+}
+```
+
+配置类
+
+```java
+
+@ComponentScan("com.xiaotu.tx")
+@PropertySource("classpath:/jdbc_config.properties")
+@Configuration
+@EnableTransactionManagement
+public class TxConfig {
+
+    @Value("${db.username}")
+    private String user;
+
+    @Value("${db.password}")
+    private String password;
+
+    @Value("${db.driverClass}")
+    private String driverClass;
+
+    @Value("${db.url}")
+    private String url;
+
+    @Bean
+    public DataSource dataSource() throws PropertyVetoException {
+        ComboPooledDataSource dataSource = new ComboPooledDataSource();
+        dataSource.setUser(user);
+        dataSource.setPassword(password);
+        dataSource.setJdbcUrl(url);
+        dataSource.setDriverClass(driverClass);
+        return dataSource;
+    }
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(DataSource dataSource){
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        return jdbcTemplate;
+    }
+
+
+    //注册事务管理器在容器中
+    @Bean
+    public PlatformTransactionManager transactionManager(DataSource dataSource){
+        return new DataSourceTransactionManager(dataSource);
+    }
+
+}
+```
+
+测试方法
+
+```java
+@Test
+public void test(){
+    AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(TxConfig.class);
+    UserService userService = applicationContext.getBean(UserService.class);
+    userService.insert();
+}
+```
+
+
+
+1. 给方法上标注@Transactional表示当前方法是一个事务方法; 
+2. @EnableTransactionManagement 开启基于注解的事务管理功能;
+3. 配置事务管理器来控制事务: public PlatformTransactionManager transactionManager(DataSource dataSource)
+
+
+
+### 事务原理
+
+
+
+原理:
+
+1)、@EnableTransactionManagement利用@Import({TransactionManagementConfigurationSelector.**class**}) 导入TransactionManagementConfiguration**Selector**，然后给容器中导入组件
+
+导入两个组件：AutoProxyRegistrar、ProxyTransactionManagementConfiguration
+
+2)、AutoProxyRegistrar  
+
+给容器中注册一个InfrastructureAdvisorAutoProxyCreator（也是一个后置处理器）组件
+
+InfrastructureAdvisorAutoProxyCreator 是利用后置处理器机制在对象创建以后【实例化之后，初始化之前】，包装对象，返回一个代理对象(增强器)，代理对象执行方法利用拦截器链进行调用;
+
+3)、ProxyTransactionManagementConfiguration
+
+1、给容器中注册事务增强器;
+
+1)、事务增强器要用事务注解的信息，AnnotationTransactionAttributeSource解析事务注解
+
+2)、事务拦截器:
+
+TransactionInterceptor;保存了事务属性信息，事务管理器;
+
+他是一个MethodInterceptor;
+
+在目标方法执行的时候 ，执行拦截器链;
+
+事务拦截器:
+
+1)、先获取事务相关的属性
+
+2)、再获取PlatformTransactionManager，如果事先没有添加指定任何transactionManager，最终会从容器中按照类型获取一个PlatformTransactionManager。
+
+3)、执行目标方法 
+
+如果异常，获取到事务管理器，利用事务管理回滚操作;
+
+如果正常，利用事务管理器，提交事务
+
+
+
+
+
